@@ -1,40 +1,43 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:notetaker/Models/noteFolder.dart';
+import 'package:notetaker/Data/DatabaseHelper.dart';
 import 'package:intl/intl.dart';
+import 'package:sqflite/sqflite.dart';
 import 'package:notetaker/UI/note_folder_screen.dart';
-import 'package:notetaker/Data/moor_database.dart';
-import 'package:provider/provider.dart';
 
-class NoteFolderDetail extends StatefulWidget {
+class FolderDetail extends StatefulWidget {
   final String appBarTitle;
-  final NoteFolder noteFolder;
+  final NoteFolder folder;
 
-  NoteFolderDetail(this.noteFolder, this.appBarTitle);
+  FolderDetail(this.folder, this.appBarTitle);
 
   @override
   State<StatefulWidget> createState() {
-    return AddFolderScreenState(this.noteFolder, this.appBarTitle);
+    return AddFolderScreenState(this.folder, this.appBarTitle);
   }
 }
 
-class AddFolderScreenState extends State<NoteFolderDetail> {
+class AddFolderScreenState extends State<FolderDetail> {
+  DatabaseHelper helper = DatabaseHelper();
+
   var _folderFormKey = GlobalKey<FormState>();
-  NoteFolder noteFolder;
-  NoteFolderDao noteFolderDao;
 
   String appBarTitle;
+  NoteFolder folder;
+  List<NoteFolder> folderList;
   int count = 0;
 
   TextEditingController titleController = TextEditingController();
   TextEditingController descriptionController = TextEditingController();
 
-  AddFolderScreenState(this.noteFolder, this.appBarTitle);
+  AddFolderScreenState(this.folder, this.appBarTitle);
 
   @override
   Widget build(BuildContext context) {
     TextStyle textStyle = Theme.of(context).textTheme.title;
 
-    titleController.text = noteFolder.title;
+    titleController.text = folder.title;
 
     return Scaffold(
       backgroundColor: Color.fromRGBO(21, 32, 43, 1.0),
@@ -71,8 +74,7 @@ class AddFolderScreenState extends State<NoteFolderDetail> {
             tooltip: 'Delete your folder!',
             onPressed: () {
               setState(() {
-                _displayDeleteConfirmationDialog(
-                    noteFolderDao, context, noteFolder);
+                _displayDeleteConfirmationDialog(context);
               });
             },
           ),
@@ -103,10 +105,10 @@ class AddFolderScreenState extends State<NoteFolderDetail> {
                   textCapitalization: TextCapitalization.words,
                   maxLines: 1,
                   autocorrect: true,
-//                  onChanged: (value) {
-//                    debugPrint('Something change in Title TextField');
-//                    updateFolderTitle();
-//                  },
+                  onChanged: (value) {
+                    debugPrint('Something change in Title TextField');
+                    updateFolderTitle();
+                  },
                   cursorColor: Colors.orangeAccent[700],
                   decoration: InputDecoration(
                     focusedBorder: OutlineInputBorder(
@@ -144,14 +146,13 @@ class AddFolderScreenState extends State<NoteFolderDetail> {
     Navigator.pop(context, true);
   }
 
-//  //Update the title of Folder object
-//  void updateFolderTitle() {
-//    noteFolder.title = titleController.text;
-//  }
+  //Update the title of Folder object
+  void updateFolderTitle() {
+    folder.title = titleController.text;
+  }
 
   //Displays delete confirmation dialog so that the user has a choice to cancel their action or go through with it
-  Future<void> _displayDeleteConfirmationDialog(NoteFolderDao noteFolderDao,
-      BuildContext context, NoteFolder noteFolder) {
+  Future<void> _displayDeleteConfirmationDialog(BuildContext context) {
     return showDialog<void>(
       context: context,
       barrierDismissible: true, // Allow dismiss when tapping away from dialog
@@ -160,14 +161,14 @@ class AddFolderScreenState extends State<NoteFolderDetail> {
           title: Text("Delete Folder"),
           content: Text("Are you sure you want to delete this folder?"),
           actions: <Widget>[
-            FlatButton(
+            TextButton(
               child: Text("Cancel"),
               onPressed: Navigator.of(context).pop, // Close dialog
             ),
-            FlatButton(
+            TextButton(
               child: Text("Delete"),
               onPressed: () {
-                _delete(noteFolderDao);
+                _delete();
                 Navigator.of(context).pop();
                 Navigator.push(
                   context,
@@ -186,13 +187,14 @@ class AddFolderScreenState extends State<NoteFolderDetail> {
   //Save data to database
   void _save() async {
     moveToPreviousScreen();
+    folder.date = DateFormat.yMMMd().format(DateTime.now());
     int result;
     //update operation
-    if (noteFolder.id != null) {
-      result = await noteFolderDao.updateNoteFolder(noteFolder);
+    if (folder.id != null) {
+      result = await helper.updateNoteFolder(folder);
       //insert operation
     } else {
-      result = await noteFolderDao.insertNoteFolder(noteFolder);
+      result = await helper.insertNoteFolder(folder);
     }
 
     if (result != 0) {
@@ -203,16 +205,15 @@ class AddFolderScreenState extends State<NoteFolderDetail> {
   }
 
   //Delete data from database
-  void _delete(NoteFolderDao noteFolderDao) async {
+  void _delete() async {
     moveToPreviousScreen();
-    final noteFolderDao = Provider.of<NoteFolderDao>(context);
     //User tries to delete a new folder which they have arrived at via pressing the FAB
-    if (noteFolder.id == null) {
+    if (folder.id == null) {
       _showAlertDialog('Folder Deleted!');
       return;
     }
     //User tries to delete an old folder that already has a valid ID and has been previously saved on the folder screen
-    int result = await noteFolderDao.deleteNoteFolder(noteFolder);
+    int result = await helper.deleteNoteFolder(folder.id);
     if (result != 0) {
       _showAlertDialog('Folder Deleted Successfully!');
     } else {
@@ -238,5 +239,19 @@ class AddFolderScreenState extends State<NoteFolderDetail> {
         return alertDialog;
       },
     );
+  }
+
+  //When this function is called, it updates the list view so the user sees an updated UI
+  void updateListView() {
+    final Future<Database> dbFuture = helper.initializeNoteTakerDatabase();
+    dbFuture.then((database) {
+      Future<List<NoteFolder>> folderListFuture = helper.getNoteFolderList();
+      folderListFuture.then((folderList) {
+        setState(() {
+          this.folderList = folderList;
+          this.count = folderList.length;
+        });
+      });
+    });
   }
 }

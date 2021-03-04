@@ -1,13 +1,14 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:notetaker/Data/moor_database.dart';
 import 'dart:async';
+import 'package:notetaker/Models/note.dart';
+import 'package:notetaker/Data/DatabaseHelper.dart';
 import 'package:intl/intl.dart';
 import 'package:notetaker/UI/all_notes_screen.dart';
+import 'package:notetaker/Models/noteFolder.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:notetaker/Data/constants.dart';
 import 'package:notetaker/Widgets/dropdown_button.dart';
-import 'package:provider/provider.dart';
 
 class NoteDetail extends StatefulWidget {
   final String appBarTitle;
@@ -22,9 +23,10 @@ class NoteDetail extends StatefulWidget {
 }
 
 class AddNoteScreenState extends State<NoteDetail> {
+  DatabaseHelper helper = DatabaseHelper();
+
   File _selectImage;
   final imagePicker = ImagePicker();
-  NoteDao noteDao;
 
   Future getImage() async {
     final image = await imagePicker.getImage(source: ImageSource.gallery);
@@ -50,7 +52,7 @@ class AddNoteScreenState extends State<NoteDetail> {
 
   String appBarTitle;
   Note note;
-  NoteFolder selectedNoteFolder;
+  NoteFolder folder;
 
   TextEditingController titleController = TextEditingController();
   TextEditingController descriptionController = TextEditingController();
@@ -73,15 +75,14 @@ class AddNoteScreenState extends State<NoteDetail> {
           color: Colors.orangeAccent[700],
         ),
         backgroundColor: Color.fromRGBO(21, 32, 43, 1.0),
-        //title: _buildNoteFolderSelector(context),
+        title: DropdownButtonFolders(note.folderId),
         actions: <Widget>[
-          _buildNoteFolderSelector(context),
+          //DropdownButtonFolders(),
           PopupMenuButton<NotePopupMenuButton>(
             icon: Icon(Icons.add),
             elevation: 16,
             onSelected: (choice) => choiceAction(choice),
             color: Color.fromRGBO(21, 32, 43, 1.0),
-            captureInheritedThemes: true,
             itemBuilder: (BuildContext context) {
               return NotePopupMenuButton.choices
                   .map((NotePopupMenuButton notePopupMenuButton) {
@@ -96,22 +97,21 @@ class AddNoteScreenState extends State<NoteDetail> {
               }).toList();
             },
           ),
-          FlatButton(
-            color: Color.fromRGBO(21, 32, 43, 1.0),
+          TextButton(
+            //color: Color.fromRGBO(21, 32, 43, 1.0),
             child: Text(
               'Save',
               textScaleFactor: 1.5,
             ),
-            textColor: Colors.orangeAccent[700],
+            //textColor: Colors.orangeAccent[700],
             onPressed: () {
               setState(() {
-                debugPrint('Save button clicked');
                 if (_noteFormKey.currentState.validate()) {
                   _save();
                 } else {
                   moveToPreviousScreen();
                   _showAlertDialog(
-                      'Note must have a title and description. Note discarded');
+                      'Note could not be saved. Please try again.');
                 }
               });
             },
@@ -122,7 +122,7 @@ class AddNoteScreenState extends State<NoteDetail> {
             tooltip: 'Delete your note!',
             onPressed: () {
               setState(() {
-                _displayDeleteConfirmationDialog(noteDao, context, note);
+                _displayDeleteConfirmationDialog(context);
               });
             },
           ),
@@ -153,10 +153,9 @@ class AddNoteScreenState extends State<NoteDetail> {
                   maxLength: 100,
                   maxLines: 1,
                   autocorrect: true,
-//                  onChanged: (value) {
-//                    debugPrint('Something change in Title TextField');
-//                    updateNoteTitle();
-//                  },
+                  onChanged: (value) {
+                    updateNoteTitle();
+                  },
                   cursorColor: Colors.orangeAccent[700],
                   decoration: InputDecoration(
                     focusedBorder: OutlineInputBorder(
@@ -202,10 +201,9 @@ class AddNoteScreenState extends State<NoteDetail> {
                   ),
                   autocorrect: true,
                   cursorColor: Colors.orangeAccent[700],
-//                  onChanged: (value) {
-//                    debugPrint('Something changed in Description TextField');
-//                    updateNoteDescription();
-//                  },
+                  onChanged: (value) {
+                    updateNoteDescription();
+                  },
                   decoration: InputDecoration(
                     focusedBorder: OutlineInputBorder(
                       borderSide:
@@ -276,15 +274,15 @@ class AddNoteScreenState extends State<NoteDetail> {
     Navigator.pop(context, true);
   }
 
-//  //Update the title of Note object
-//  void updateNoteTitle() {
-//    note.title = titleController.text;
-//  }
-//
-//  //Update the description of note object
-//  void updateNoteDescription() {
-//    note.description = descriptionController.text;
-//  }
+  //Update the title of Note object
+  void updateNoteTitle() {
+    note.title = titleController.text;
+  }
+
+  //Update the description of note object
+  void updateNoteDescription() {
+    note.description = descriptionController.text;
+  }
 
   //TODO: Finish this!!
 //  void updateNoteImage() {
@@ -314,14 +312,14 @@ class AddNoteScreenState extends State<NoteDetail> {
   //TODO: Finish this!
   void _save() async {
     moveToPreviousScreen();
-    final noteDao = Provider.of<NoteDao>(context, listen: false);
+    note.date = DateFormat.yMMMd().format(DateTime.now());
     int result;
     //update operation
     if (note.id != null) {
-      result = await noteDao.updateNote(note);
+      result = await helper.updateNote(note);
       //insert operation
     } else {
-      result = await noteDao.insertNote(note);
+      result = await helper.insertNote(note);
     }
 
     if (result != 0) {
@@ -331,9 +329,17 @@ class AddNoteScreenState extends State<NoteDetail> {
     }
   }
 
+//  void _saveNoteFolderId() async {
+//    int result;
+//    if (note.id != null) {
+//      note.folderId = folder.id;
+//    } else {
+//      note.folderId = folder.id;
+//    }
+//  }
+
   //Displays delete confirmation dialog so that the user has a choice to cancel their action or go through with it
-  Future<void> _displayDeleteConfirmationDialog(
-      NoteDao noteDao, BuildContext context, Note note) {
+  Future<void> _displayDeleteConfirmationDialog(BuildContext context) {
     return showDialog<void>(
         context: context,
         barrierDismissible: true, // Allow dismiss when tapping away from dialog
@@ -343,14 +349,14 @@ class AddNoteScreenState extends State<NoteDetail> {
             title: Text("Delete Note"),
             content: Text("Are you sure you want to delete this note?"),
             actions: <Widget>[
-              FlatButton(
+              TextButton(
                 child: Text("Cancel"),
                 onPressed: Navigator.of(context).pop, // Close dialog
               ),
-              FlatButton(
+              TextButton(
                 child: Text("Delete"),
                 onPressed: () {
-                  _delete(noteDao);
+                  _delete();
                   Navigator.of(context).pop();
                   Navigator.push(
                     context,
@@ -366,8 +372,7 @@ class AddNoteScreenState extends State<NoteDetail> {
   }
 
   //Delete data from database
-  void _delete(NoteDao noteDao) async {
-    final noteDao = Provider.of<NoteDao>(context);
+  void _delete() async {
     moveToPreviousScreen();
     //User tries to delete a new note which they have arrived at via pressing the FAB
     if (note.id == null) {
@@ -375,7 +380,7 @@ class AddNoteScreenState extends State<NoteDetail> {
       return;
     }
     //User tries to delete an old note that already has a valid ID and has been previously saved on the note screen
-    int result = await noteDao.deleteNote(note);
+    int result = await helper.deleteNote(note.id);
     if (result != 0) {
       _showAlertDialog('Note Deleted Successfully!');
     } else {
@@ -397,63 +402,5 @@ class AddNoteScreenState extends State<NoteDetail> {
           });
           return alertDialog;
         });
-  }
-
-  StreamBuilder<List<NoteFolder>> _buildNoteFolderSelector(
-      BuildContext context) {
-    return StreamBuilder<List<NoteFolder>>(
-      stream: Provider.of<NoteFolderDao>(context).watchAllNoteFolders(),
-      builder: (context, snapshot) {
-        final noteFolders = snapshot.data ?? List();
-        DropdownMenuItem<NoteFolder> dropdownFromNoteFolder(
-            NoteFolder noteFolder) {
-          return DropdownMenuItem(
-            value: noteFolder,
-            child: Row(
-              children: <Widget>[
-                CircleAvatar(
-                  backgroundColor: Color.fromRGBO(21, 32, 43, 1.0),
-                  foregroundColor: Colors.orangeAccent[700],
-                  child: Icon(Icons.folder),
-                ),
-                Text(noteFolder.title)
-              ],
-            ),
-          );
-        }
-
-        final dropdownMenuItems = noteFolders
-            .map((noteFolder) => dropdownFromNoteFolder(noteFolder))
-            .toList()
-              ..insert(
-                0,
-                DropdownMenuItem(
-                  value: null,
-                  child: Text('All Notes'),
-                ),
-              );
-        return Expanded(
-          flex: 3,
-          child: DropdownButton(
-            icon: Icon(
-              Icons.arrow_drop_down,
-              color: Colors.orangeAccent[700],
-            ),
-            iconSize: 30,
-            elevation: 16,
-            dropdownColor: Color.fromRGBO(21, 32, 43, 1.0),
-            style: TextStyle(color: Colors.orangeAccent[700]),
-            onChanged: (noteFolder) {
-              setState(() {
-                selectedNoteFolder = noteFolder;
-              });
-            },
-            isExpanded: true,
-            value: selectedNoteFolder,
-            items: dropdownMenuItems,
-          ),
-        );
-      },
-    );
   }
 }

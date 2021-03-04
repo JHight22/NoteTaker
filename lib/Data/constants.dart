@@ -9,7 +9,7 @@ class EditAndDeletePopupMenuButton {
   static List<EditAndDeletePopupMenuButton> choices =
       <EditAndDeletePopupMenuButton>[
     EditAndDeletePopupMenuButton(
-        title: 'Go To Tasks', icon: Icon(Icons.content_paste)),
+        title: 'Go To Notes', icon: Icon(Icons.content_paste)),
     EditAndDeletePopupMenuButton(title: 'Edit', icon: Icon(Icons.edit)),
     EditAndDeletePopupMenuButton(
         title: 'Delete', icon: Icon(Icons.delete_outline))

@@ -44,7 +44,7 @@ class NavigationDrawer extends StatelessWidget {
               Icons.content_paste,
               color: Colors.orangeAccent[700],
             ),
-            title: Text('Entire Agenda'),
+            title: Text('All Tasks'),
             trailing: Icon(
               Icons.arrow_right,
             ),

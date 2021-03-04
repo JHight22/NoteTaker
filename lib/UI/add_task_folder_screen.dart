@@ -1,37 +1,43 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:notetaker/Models/taskFolder.dart';
+import 'package:notetaker/Data/DatabaseHelper.dart';
 import 'package:intl/intl.dart';
-import 'package:moor/moor.dart';
+import 'package:sqflite/sqflite.dart';
 import 'package:notetaker/UI/task_folder_screen.dart';
-import 'package:notetaker/Data/moor_database.dart';
-import 'package:provider/provider.dart';
 
-class TaskFolderDetail extends StatefulWidget {
+class FolderDetail extends StatefulWidget {
   final String appBarTitle;
-  final TaskFolder taskFolder;
+  final TaskFolder folder;
 
-  TaskFolderDetail(this.taskFolder, this.appBarTitle);
+  FolderDetail(this.folder, this.appBarTitle);
 
   @override
   State<StatefulWidget> createState() {
-    return AddFolderScreenState(this.taskFolder, this.appBarTitle);
+    return AddFolderScreenState(this.folder, this.appBarTitle);
   }
 }
 
-class AddFolderScreenState extends State<TaskFolderDetail> {
-  var _folderFormKey = GlobalKey<FormState>();
-  TaskFolder taskFolder;
-  TaskFolderDao taskFolderDao;
-  String appBarTitle;
-  TextEditingController titleController = TextEditingController();
+class AddFolderScreenState extends State<FolderDetail> {
+  DatabaseHelper helper = DatabaseHelper();
 
-  AddFolderScreenState(this.taskFolder, this.appBarTitle);
+  var _folderFormKey = GlobalKey<FormState>();
+
+  String appBarTitle;
+  TaskFolder folder;
+  List<TaskFolder> folderList;
+  int count = 0;
+
+  TextEditingController titleController = TextEditingController();
+  TextEditingController descriptionController = TextEditingController();
+
+  AddFolderScreenState(this.folder, this.appBarTitle);
 
   @override
   Widget build(BuildContext context) {
     TextStyle textStyle = Theme.of(context).textTheme.title;
 
-    titleController.text = taskFolder.title;
+    titleController.text = folder.title;
 
     return Scaffold(
       backgroundColor: Color.fromRGBO(21, 32, 43, 1.0),
@@ -53,11 +59,7 @@ class AddFolderScreenState extends State<TaskFolderDetail> {
               setState(() {
                 debugPrint('Save button clicked');
                 if (_folderFormKey.currentState.validate()) {
-                  if (taskFolder.id == null) {
-                    _saveInsertTaskFolder(taskFolder, context, taskFolderDao);
-                  } else {
-                    _saveUpdateTaskFolder(taskFolder, context, taskFolderDao);
-                  }
+                  _save();
                 } else {
                   moveToPreviousScreen();
                   _showAlertDialog(
@@ -72,8 +74,7 @@ class AddFolderScreenState extends State<TaskFolderDetail> {
             tooltip: 'Delete your folder!',
             onPressed: () {
               setState(() {
-                _displayDeleteConfirmationDialog(
-                    taskFolderDao, context, taskFolder);
+                _displayDeleteConfirmationDialog(context);
               });
             },
           ),
@@ -104,6 +105,10 @@ class AddFolderScreenState extends State<TaskFolderDetail> {
                   textCapitalization: TextCapitalization.words,
                   maxLines: 1,
                   autocorrect: true,
+                  onChanged: (value) {
+                    debugPrint('Something change in Title TextField');
+                    updateFolderTitle();
+                  },
                   cursorColor: Colors.orangeAccent[700],
                   decoration: InputDecoration(
                     focusedBorder: OutlineInputBorder(
@@ -141,9 +146,13 @@ class AddFolderScreenState extends State<TaskFolderDetail> {
     Navigator.pop(context, true);
   }
 
+  //Update the title of Folder object
+  void updateFolderTitle() {
+    folder.title = titleController.text;
+  }
+
   //Displays delete confirmation dialog so that the user has a choice to cancel their action or go through with it
-  Future<void> _displayDeleteConfirmationDialog(TaskFolderDao taskFolderDao,
-      BuildContext context, TaskFolder taskFolder) {
+  Future<void> _displayDeleteConfirmationDialog(BuildContext context) {
     return showDialog<void>(
       context: context,
       barrierDismissible: true, // Allow dismiss when tapping away from dialog
@@ -152,14 +161,14 @@ class AddFolderScreenState extends State<TaskFolderDetail> {
           title: Text("Delete Folder"),
           content: Text("Are you sure you want to delete this folder?"),
           actions: <Widget>[
-            FlatButton(
+            TextButton(
               child: Text("Cancel"),
               onPressed: Navigator.of(context).pop, // Close dialog
             ),
-            FlatButton(
+            TextButton(
               child: Text("Delete"),
               onPressed: () {
-                _delete(taskFolderDao, taskFolder);
+                _delete();
                 Navigator.of(context).pop();
                 Navigator.push(
                   context,
@@ -176,61 +185,35 @@ class AddFolderScreenState extends State<TaskFolderDetail> {
   }
 
   //Save data to database
-  void _saveInsertTaskFolder(TaskFolder taskFolder, BuildContext context,
-      TaskFolderDao taskFolderDao) async {
+  void _save() async {
     moveToPreviousScreen();
-    final taskFolderDao = Provider.of<TaskFolderDao>(context, listen: false);
-    final taskFolder = TaskFoldersCompanion(
-      title: Value(titleController.text),
-      date: Value(DateTime.now()),
-    );
-
+    folder.date = DateFormat.yMMMd().format(DateTime.now());
     int result;
-    result = await taskFolderDao.insertTaskFolder(taskFolder);
+    //update operation
+    if (folder.id != null) {
+      result = await helper.updateTaskFolder(folder);
+      //insert operation
+    } else {
+      result = await helper.insertTaskFolder(folder);
+    }
 
     if (result != 0) {
       _showAlertDialog('Folder Saved Successfully!');
     } else {
-      _showAlertDialog('Issue with saving folder! Please try again!');
+      _showAlertDialog('Issue with Saving Folder! Please Try again!');
     }
-
-    titleController.clear();
-  }
-
-  void _saveUpdateTaskFolder(TaskFolder taskFolder, BuildContext context,
-      TaskFolderDao taskFolderDao) async {
-    moveToPreviousScreen();
-    final taskFolderDao = Provider.of<TaskFolderDao>(context, listen: false);
-    final taskFolder = TaskFoldersCompanion(
-      title: Value(titleController.text),
-      date: Value(DateTime.now()),
-    );
-
-    taskFolderDao.updateTaskFolder(taskFolder);
-
-//    int result;
-//    result = await taskFolderDao.updateTaskFolder(taskFolder);
-//
-//    if (result != 0) {
-//      _showAlertDialog('Folder Saved Successfully!');
-//    } else {
-//      _showAlertDialog('Issue with saving folder! Please try again!');
-//    }
-
-    titleController.clear();
   }
 
   //Delete data from database
-  void _delete(TaskFolderDao taskFolderDao, TaskFolder taskFolder) async {
+  void _delete() async {
     moveToPreviousScreen();
-    final taskFolderDao = Provider.of<TaskFolderDao>(context, listen: false);
-    //taskFolderDao.deleteTaskFolder(taskFolder);
     //User tries to delete a new folder which they have arrived at via pressing the FAB
-    if (taskFolder.id == null) {
+    if (folder.id == null) {
       _showAlertDialog('Folder Deleted!');
+      return;
     }
     //User tries to delete an old folder that already has a valid ID and has been previously saved on the folder screen
-    int result = await taskFolderDao.deleteTaskFolder(taskFolder);
+    int result = await helper.deleteTaskFolder(folder.id);
     if (result != 0) {
       _showAlertDialog('Folder Deleted Successfully!');
     } else {
@@ -248,7 +231,7 @@ class AddFolderScreenState extends State<TaskFolderDetail> {
       context: context,
       builder: (context) {
         Future.delayed(
-          Duration(seconds: 2),
+          Duration(seconds: 1),
           () {
             Navigator.of(context).pop(true);
           },
@@ -256,5 +239,19 @@ class AddFolderScreenState extends State<TaskFolderDetail> {
         return alertDialog;
       },
     );
+  }
+
+  //When this function is called, it updates the list view so the user sees an updated UI
+  void updateListView() {
+    final Future<Database> dbFuture = helper.initializeNoteTakerDatabase();
+    dbFuture.then((database) {
+      Future<List<TaskFolder>> folderListFuture = helper.getTaskFolderList();
+      folderListFuture.then((folderList) {
+        setState(() {
+          this.folderList = folderList;
+          this.count = folderList.length;
+        });
+      });
+    });
   }
 }

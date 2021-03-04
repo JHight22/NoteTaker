@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:notetaker/Widgets/navigation_drawer.dart';
 import 'package:notetaker/UI/add_note_screen.dart';
+import 'package:notetaker/Models/note.dart';
+import 'package:notetaker/Data/DatabaseHelper.dart';
+import 'package:sqflite/sqflite.dart';
 import 'dart:async';
-import 'package:notetaker/Data/moor_database.dart';
-import 'package:provider/provider.dart';
 
 class AllNotesScreen extends StatefulWidget {
   static const String id = 'all_notes_screen';
@@ -15,8 +16,18 @@ class AllNotesScreen extends StatefulWidget {
 }
 
 class AllNotesScreenState extends State<AllNotesScreen> {
+  DatabaseHelper noteDatabaseHelper = DatabaseHelper();
+  List<Note> noteList;
+  int count = 0;
+  Note note;
+
   @override
   Widget build(BuildContext context) {
+    if (noteList == null) {
+      noteList = <Note>[];
+      updateListView();
+    }
+
     return Scaffold(
       backgroundColor: Color.fromRGBO(21, 32, 43, 1.0),
       floatingActionButton: FloatingActionButton(
@@ -24,10 +35,11 @@ class AllNotesScreenState extends State<AllNotesScreen> {
         backgroundColor: Colors.orangeAccent[700],
         child: Icon(Icons.note),
         onPressed: () {
-          navigateToAddNoteScreen(Note(), 'Create Note');
+          navigateToAddNoteScreen(Note('', '', ''), 'Create Note');
         },
       ),
       appBar: AppBar(
+        elevation: 1,
         iconTheme: IconThemeData(color: Colors.orangeAccent[700]),
         backgroundColor: Color.fromRGBO(21, 32, 43, 1.0),
         title: const Text(
@@ -37,56 +49,63 @@ class AllNotesScreenState extends State<AllNotesScreen> {
           ),
         ),
       ),
-      drawer: NavigationDrawer(),
+      //drawer: NavigationDrawer(),
       body: Builder(
-        builder: (BuildContext innerContext) => _buildNoteList(context),
+        builder: (BuildContext innerContext) => getNoteListView(),
       ),
     );
   }
 
-  StreamBuilder<List<Note>> _buildNoteList(BuildContext context) {
-    final noteDao = Provider.of<NoteDao>(context);
-    return StreamBuilder(
-      stream: noteDao.watchAllNotes(),
-      builder: (context, AsyncSnapshot<List<Note>> snapshot) {
-        final notes = snapshot.data ?? List();
-        return ListView.builder(
-          itemCount: notes.length,
-          itemBuilder: (_, index) {
-            final itemNote = notes[index];
-            return _buildListItem(itemNote, noteDao);
-          },
+  ListView getNoteListView() {
+    return ListView.builder(
+      itemCount: count,
+      itemBuilder: (BuildContext context, int position) {
+        return Card(
+          color: Color.fromRGBO(21, 32, 43, 1.0),
+          elevation: 0,
+          child: ListTile(
+//            leading: ConstrainedBox(
+//              constraints: BoxConstraints(
+//                maxHeight: 100,
+//                minHeight: 100,
+//                maxWidth: 100,
+//                minWidth: 100,
+//              ),
+//              child: Image.asset(
+//                this.noteList[position].image,
+//                fit: BoxFit.cover,
+//              ),
+//            ),
+            title: Text(
+              this.noteList[position].title,
+            ),
+            subtitle: Text(
+              this.noteList[position].description,
+            ),
+            trailing: GestureDetector(
+              child: Icon(
+                Icons.delete,
+                color: Colors.orangeAccent[700],
+              ),
+              onTap: () {
+                _displayDeleteConfirmationDialog(
+                    context, this.noteList[position]);
+                updateListView();
+              },
+            ),
+            onTap: () {
+              debugPrint('ListTile tapped');
+              navigateToAddNoteScreen(this.noteList[position], 'Create Note');
+            },
+          ),
         );
       },
     );
   }
 
-  Widget _buildListItem(Note itemNote, NoteDao noteDao) {
-    return Card(
-      color: Color.fromRGBO(21, 32, 43, 1.0),
-      elevation: 0,
-      child: ListTile(
-        title: Text(itemNote.title),
-        subtitle: Text(itemNote.description),
-        trailing: GestureDetector(
-          child: Icon(
-            Icons.delete_outline,
-            color: Colors.orangeAccent[700],
-          ),
-          onTap: () =>
-              _displayDeleteConfirmationDialog(noteDao, context, itemNote),
-        ),
-        onTap: () {
-          debugPrint('Listtile tapped');
-          navigateToAddNoteScreen(itemNote, 'Edit Note');
-        },
-      ),
-    );
-  }
-
   //Displays delete confirmation dialog so that the user has a choice to cancel their action or go through with it
   Future<void> _displayDeleteConfirmationDialog(
-      NoteDao noteDao, BuildContext context, itemNote) {
+      BuildContext context, Note note) {
     return showDialog<void>(
         context: context,
         barrierDismissible: true, // Allow dismiss when tapping away from dialog
@@ -96,21 +115,29 @@ class AllNotesScreenState extends State<AllNotesScreen> {
             title: Text("Delete Note"),
             content: Text("Are you sure you want to delete this note?"),
             actions: <Widget>[
-              FlatButton(
+              TextButton(
                 child: Text("Cancel"),
                 onPressed: Navigator.of(context).pop, // Close dialog
               ),
-              FlatButton(
+              TextButton(
                 child: Text("Delete"),
                 onPressed: () {
-                  final noteDao = Provider.of<NoteDao>(context);
-                  noteDao.deleteNote(itemNote);
+                  _delete(context, note);
                   Navigator.of(context).pop(); // Close dialog
+                  updateListView();
                 },
               ),
             ],
           );
         });
+  }
+
+  void _delete(BuildContext context, Note note) async {
+    int result = await noteDatabaseHelper.deleteNote(note.id);
+    if (result != 0) {
+      _presentSnackBar(context, 'Note Deleted Successfully!');
+      updateListView();
+    }
   }
 
   void _presentSnackBar(BuildContext context, String message) {
@@ -127,6 +154,22 @@ class AllNotesScreenState extends State<AllNotesScreen> {
         },
       ),
     );
-    if (result == true) {}
+    if (result == true) {
+      updateListView();
+    }
+  }
+
+  void updateListView() {
+    final Future<Database> dbFuture =
+        noteDatabaseHelper.initializeNoteTakerDatabase();
+    dbFuture.then((database) {
+      Future<List<Note>> noteListFuture = noteDatabaseHelper.getNoteList();
+      noteListFuture.then((noteList) {
+        setState(() {
+          this.noteList = noteList;
+          this.count = noteList.length;
+        });
+      });
+    });
   }
 }

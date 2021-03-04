@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:notetaker/Widgets/navigation_drawer.dart';
 import 'package:notetaker/UI/add_task_folder_screen.dart';
+import 'package:notetaker/Models/taskFolder.dart';
+import 'package:notetaker/Data/DatabaseHelper.dart';
+import 'package:sqflite/sqflite.dart';
 import 'dart:async';
 import 'package:notetaker/Data/constants.dart';
-import 'package:notetaker/Data/moor_database.dart';
-import 'package:provider/provider.dart';
 import 'package:notetaker/UI/task_screen.dart';
 
 class TaskFolderScreen extends StatefulWidget {
@@ -18,8 +18,17 @@ class TaskFolderScreen extends StatefulWidget {
 }
 
 class TaskFolderScreenState extends State<TaskFolderScreen> {
+  DatabaseHelper folderDatabaseHelper = DatabaseHelper();
+  List<TaskFolder> folderList;
+  int count = 0;
+
   @override
   Widget build(BuildContext context) {
+    if (folderList == null) {
+      folderList = <TaskFolder>[];
+      updateListView();
+    }
+
     return Scaffold(
       backgroundColor: Color.fromRGBO(21, 32, 43, 1.0),
       floatingActionButton: FloatingActionButton(
@@ -27,7 +36,8 @@ class TaskFolderScreenState extends State<TaskFolderScreen> {
         backgroundColor: Colors.orangeAccent[700],
         child: Icon(Icons.create_new_folder),
         onPressed: () {
-          navigateToAddTaskFolderScreen(TaskFolder(), 'Create Folder');
+          navigateToAddTaskFolderScreen(
+              TaskFolder('', ''), 'Create Task Folder');
         },
       ),
       appBar: AppBar(
@@ -40,112 +50,90 @@ class TaskFolderScreenState extends State<TaskFolderScreen> {
           ),
         ),
       ),
-      drawer: NavigationDrawer(),
+      //drawer: NavigationDrawer(),
       body: Builder(
-        builder: (BuildContext innerContext) => _buildTaskFolderList(context),
+        builder: (BuildContext innerContext) => getTaskFolderListView(),
       ),
     );
   }
 
-  StreamBuilder<List<TaskFolder>> _buildTaskFolderList(BuildContext context) {
-    final taskFolderDao = Provider.of<TaskFolderDao>(context);
-    return StreamBuilder(
-      stream: taskFolderDao.watchAllTaskFolders(),
-      builder: (context, AsyncSnapshot<List<TaskFolder>> snapshot) {
-        final taskFolders = snapshot.data ?? List();
-        return ListView.builder(
-          itemCount: taskFolders.length,
-          itemBuilder: (_, index) {
-            final itemTaskFolder = taskFolders[index];
-            return _buildListItem(itemTaskFolder, taskFolderDao);
+  ListView getTaskFolderListView() {
+    return ListView.builder(
+      itemCount: count,
+      itemBuilder: (BuildContext context, int position) {
+        return ListTile(
+          leading: CircleAvatar(
+            backgroundColor: Colors.orangeAccent[700],
+            child: Icon(
+              Icons.folder,
+              color: Colors.black,
+            ),
+          ),
+          title: Text(
+            this.folderList[position].title,
+          ),
+          subtitle: Text(
+            this.folderList[position].date,
+          ),
+          trailing: PopupMenuButton<EditAndDeletePopupMenuButton>(
+            color: Color.fromRGBO(21, 32, 43, 1.0),
+            icon: Icon(
+              Icons.more_vert,
+              color: Colors.orangeAccent[700],
+            ),
+            onSelected: (choice) => choiceAction(choice, position),
+            //captureInheritedThemes: true,
+            itemBuilder: (BuildContext context) {
+              return EditAndDeletePopupMenuButton.choices.map(
+                  (EditAndDeletePopupMenuButton editAndDeletePopupMenuButton) {
+                return PopupMenuItem<EditAndDeletePopupMenuButton>(
+                  value: editAndDeletePopupMenuButton,
+                  child: ListTile(
+                    leading: CircleAvatar(
+                      backgroundColor: Color.fromRGBO(21, 32, 43, 1.0),
+                      foregroundColor: Colors.orangeAccent[700],
+                      child: editAndDeletePopupMenuButton.icon,
+                    ),
+                    title: Text(
+                      editAndDeletePopupMenuButton.title,
+                      style: TextStyle(
+                        color: Colors.orangeAccent[700],
+                      ),
+                    ),
+                  ),
+                );
+              }).toList();
+            },
+          ),
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => TaskScreen(),
+                settings: RouteSettings(arguments: folderList[position].id),
+              ),
+            );
           },
         );
       },
     );
   }
 
-  Widget _buildListItem(TaskFolder taskFolder, TaskFolderDao taskFolderDao) {
-    var newFormat = DateFormat("MM-dd-yyyy");
-    String updatedDt = newFormat.format(taskFolder.date);
-
-    return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: Colors.orangeAccent[700],
-        child: Icon(
-          Icons.folder,
-          color: Colors.black,
-        ),
-      ),
-      title: Text(
-        taskFolder.title,
-      ),
-      subtitle: Text(
-        updatedDt,
-      ),
-      trailing: PopupMenuButton<EditAndDeletePopupMenuButton>(
-        color: Color.fromRGBO(21, 32, 43, 1.0),
-        icon: Icon(
-          Icons.more_vert,
-          color: Colors.orangeAccent[700],
-        ),
-        onSelected: (choice) => choiceAction(taskFolderDao, choice, taskFolder),
-        captureInheritedThemes: true,
-        itemBuilder: (BuildContext context) {
-          return EditAndDeletePopupMenuButton.choices
-              .map((EditAndDeletePopupMenuButton editAndDeletePopupMenuButton) {
-            return PopupMenuItem<EditAndDeletePopupMenuButton>(
-              value: editAndDeletePopupMenuButton,
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: Color.fromRGBO(21, 32, 43, 1.0),
-                  foregroundColor: Colors.orangeAccent[700],
-                  child: editAndDeletePopupMenuButton.icon,
-                ),
-                title: Text(
-                  editAndDeletePopupMenuButton.title,
-                  style: TextStyle(
-                    color: Colors.orangeAccent[700],
-                  ),
-                ),
-              ),
-            );
-          }).toList();
-        },
-      ),
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => TaskScreen(),
-          ),
-        );
-      },
-    );
-  }
-
   //Gives the PopupMenuButton Widget functionality
-  void choiceAction(
-      TaskFolderDao taskFolderDao, choice, TaskFolder taskFolder) {
-    setState(
-      () {
-        if (choice == EditAndDeletePopupMenuButton.choices[0]) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => TaskScreen(),
-            ),
-          );
-        } else if (choice == EditAndDeletePopupMenuButton.choices[1]) {
-          navigateToAddTaskFolderScreen(taskFolder, 'Edit Task');
-        } else if (choice == EditAndDeletePopupMenuButton.choices[2]) {
-          _displayDeleteConfirmationDialog(taskFolderDao, context, taskFolder);
-        }
-      },
-    );
+  void choiceAction(EditAndDeletePopupMenuButton choice, int position) {
+    setState(() {
+      if (choice == EditAndDeletePopupMenuButton.choices[0]) {
+        navigateToAddTaskFolderScreen(folderList[position], 'Edit Folder');
+        updateListView();
+      } else if (choice == EditAndDeletePopupMenuButton.choices[1]) {
+        _displayDeleteConfirmationDialog(context, this.folderList[position]);
+        updateListView();
+      }
+    });
   }
 
   //Displays delete confirmation dialog so that the user has a choice to cancel their action or go through with it
-  Future<void> _displayDeleteConfirmationDialog(TaskFolderDao taskFolderDao,
+  Future<void> _displayDeleteConfirmationDialog(
       BuildContext context, TaskFolder taskFolder) {
     return showDialog<void>(
       context: context,
@@ -155,23 +143,31 @@ class TaskFolderScreenState extends State<TaskFolderScreen> {
           title: Text("Delete Folder"),
           content: Text("Are you sure you want to delete this folder?"),
           actions: <Widget>[
-            FlatButton(
+            TextButton(
               child: Text("Cancel"),
               onPressed: Navigator.of(context).pop, // Close dialog
             ),
-            FlatButton(
+            TextButton(
               child: Text("Delete"),
               onPressed: () {
-                final taskFolderDao =
-                    Provider.of<TaskFolderDao>(context, listen: false);
-                taskFolderDao.deleteTaskFolder(taskFolder);
+                _delete(context, taskFolder);
                 Navigator.of(context).pop(); // Close dialog
+                updateListView();
               },
             ),
           ],
         );
       },
     );
+  }
+
+  //This function actually deletes folder from database
+  void _delete(BuildContext context, TaskFolder taskFolder) async {
+    int result = await folderDatabaseHelper.deleteTaskFolder(taskFolder.id);
+    if (result != 0) {
+      _presentSnackBar(context, 'Folder Deleted Successfully!');
+      updateListView();
+    }
   }
 
   void _presentSnackBar(BuildContext context, String message) {
@@ -185,10 +181,28 @@ class TaskFolderScreenState extends State<TaskFolderScreen> {
       context,
       MaterialPageRoute(
         builder: (context) {
-          return TaskFolderDetail(taskFolder, title);
+          return FolderDetail(taskFolder, title);
         },
       ),
     );
-    if (result == true) {}
+    if (result == true) {
+      updateListView();
+    }
+  }
+
+  //When this function is called, it updates the list view so the user sees an updated UI
+  void updateListView() {
+    final Future<Database> dbFuture =
+        folderDatabaseHelper.initializeNoteTakerDatabase();
+    dbFuture.then((database) {
+      Future<List<TaskFolder>> taskFolderListFuture =
+          folderDatabaseHelper.getTaskFolderList();
+      taskFolderListFuture.then((folderList) {
+        setState(() {
+          this.folderList = folderList;
+          this.count = folderList.length;
+        });
+      });
+    });
   }
 }

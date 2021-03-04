@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:notetaker/Widgets/navigation_drawer.dart';
 import 'package:notetaker/UI/add_task_screen.dart';
+import 'package:notetaker/Models/task.dart';
+import 'package:notetaker/Data/DatabaseHelper.dart';
+import 'package:sqflite/sqflite.dart';
 import 'dart:async';
-import 'package:notetaker/Data/constants.dart';
-import 'package:notetaker/Data/moor_database.dart';
-import 'package:provider/provider.dart';
 
 class AllTasksScreen extends StatefulWidget {
   static const String id = 'all_tasks_screen';
@@ -17,11 +16,30 @@ class AllTasksScreen extends StatefulWidget {
 }
 
 class AllTasksScreenState extends State<AllTasksScreen> {
+  DatabaseHelper taskDatabaseHelper = DatabaseHelper();
+  List<Task> taskList;
+  int count = 0;
+  Task task;
+
   @override
   Widget build(BuildContext context) {
+    if (taskList == null) {
+      taskList = <Task>[];
+      updateListView();
+    }
+
     return Scaffold(
       backgroundColor: Color.fromRGBO(21, 32, 43, 1.0),
+      floatingActionButton: FloatingActionButton(
+        foregroundColor: Colors.black,
+        backgroundColor: Colors.orangeAccent[700],
+        child: Icon(Icons.content_paste),
+        onPressed: () {
+          navigateToAddTaskScreen(Task(), 'Create Task');
+        },
+      ),
       appBar: AppBar(
+        elevation: 1,
         iconTheme: IconThemeData(color: Colors.orangeAccent[700]),
         backgroundColor: Color.fromRGBO(21, 32, 43, 1.0),
         title: const Text(
@@ -31,109 +49,90 @@ class AllTasksScreenState extends State<AllTasksScreen> {
           ),
         ),
       ),
-      drawer: NavigationDrawer(),
+      //drawer: NavigationDrawer(),
       body: Builder(
-        builder: (BuildContext innerContext) => _buildTaskList(context),
-      ),
-      floatingActionButton: FloatingActionButton(
-        foregroundColor: Colors.black,
-        backgroundColor: Colors.orangeAccent[700],
-        child: Icon(Icons.content_paste),
-        onPressed: () {
-          navigateToAddTaskScreen(Task(), 'Create Task');
-        },
+        builder: (BuildContext innerContext) => getTaskListView(),
       ),
     );
   }
 
-  StreamBuilder<List<Task>> _buildTaskList(BuildContext context) {
-    final taskDao = Provider.of<TaskDao>(context);
-    return StreamBuilder(
-      stream: taskDao.watchAllTasks(),
-      builder: (context, AsyncSnapshot<List<Task>> snapshot) {
-        final tasks = snapshot.data ?? List();
-        return ListView.builder(
-          itemCount: tasks.length,
-          itemBuilder: (_, index) {
-            final itemTask = tasks[index];
-            return _buildListItem(itemTask, taskDao);
-          },
+  ListView getTaskListView() {
+    return ListView.builder(
+      itemCount: count,
+      itemBuilder: (BuildContext context, int position) {
+        return Card(
+          elevation: 0,
+          //shadowColor: Colors.orangeAccent[700],
+          color: Color.fromRGBO(21, 32, 43, 1.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: <Widget>[
+              ListTile(
+                onTap: () {
+                  navigateToAddTaskScreen(this.taskList[position], 'Edit Task');
+                },
+                leading: Checkbox(
+                  checkColor: Colors.black,
+                  activeColor: Colors.orangeAccent[700],
+                  value: this.taskList[position].checkbox,
+                  onChanged: (bool newValue) {
+                    setState(() {
+                      this.taskList[position].checkbox = newValue;
+                    });
+                    _save(context, this.taskList[position]);
+                  },
+                ),
+                title: Text(
+                  this.taskList[position].description,
+                ),
+                subtitle: Text(
+                  this.taskList[position].date,
+                ),
+                trailing: GestureDetector(
+                  child: Icon(
+                    Icons.delete,
+                    color: Colors.orangeAccent[700],
+                  ),
+                  onTap: () {
+                    _displayDeleteConfirmationDialog(
+                        context, this.taskList[position]);
+                    updateListView();
+                  },
+                ),
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: <Widget>[],
+              ),
+            ],
+          ),
         );
       },
     );
   }
 
-  Widget _buildListItem(Task itemTask, TaskDao taskDao) {
-    var newFormat = DateFormat("MM-dd-yyyy");
-    String updatedDt = newFormat.format(itemTask.date);
-
-    return ListTile(
-      leading: Checkbox(
-        checkColor: Colors.black,
-        activeColor: Colors.orangeAccent[700],
-        value: itemTask.checkbox,
-        onChanged: (newValue) {
-          taskDao.updateTask(itemTask.copyWith(checkbox: newValue));
-        },
-      ),
-      title: Text(itemTask.description),
-      subtitle: Text(
-        updatedDt,
-      ),
-      trailing: PopupMenuButton<EditAndDeletePopupMenuButton>(
-        color: Color.fromRGBO(21, 32, 43, 1.0),
-        icon: Icon(
-          Icons.more_vert,
-          color: Colors.orangeAccent[700],
-        ),
-        onSelected: (choice) => choiceAction(taskDao, choice, itemTask),
-        captureInheritedThemes: true,
-        itemBuilder: (BuildContext context) {
-          return EditAndDeletePopupMenuButton.choices
-              .map((EditAndDeletePopupMenuButton editAndDeletePopupMenuButton) {
-            return PopupMenuItem<EditAndDeletePopupMenuButton>(
-              value: editAndDeletePopupMenuButton,
-              child: ListTile(
-                leading: CircleAvatar(
-                  backgroundColor: Color.fromRGBO(21, 32, 43, 1.0),
-                  foregroundColor: Colors.orangeAccent[700],
-                  child: editAndDeletePopupMenuButton.icon,
-                ),
-                title: Text(
-                  editAndDeletePopupMenuButton.title,
-                  style: TextStyle(
-                    color: Colors.orangeAccent[700],
-                  ),
-                ),
-              ),
-            );
-          }).toList();
-        },
-      ),
-    );
-  }
-
   //Displays delete confirmation dialog so that the user has a choice to cancel their action or go through with it
   Future<void> _displayDeleteConfirmationDialog(
-      TaskDao taskDao, BuildContext context, Task itemTask) {
+      BuildContext context, Task task) {
     return showDialog<void>(
         context: context,
         barrierDismissible: true, // Allow dismiss when tapping away from dialog
         builder: (BuildContext context) {
           return AlertDialog(
+            backgroundColor: Color.fromRGBO(21, 32, 43, 1.0),
             title: Text("Delete Task"),
             content: Text("Are you sure you want to delete this task?"),
             actions: <Widget>[
-              FlatButton(
+              TextButton(
                 child: Text("Cancel"),
                 onPressed: Navigator.of(context).pop, // Close dialog
               ),
-              FlatButton(
+              TextButton(
                 child: Text("Delete"),
                 onPressed: () {
-                  final taskDao = Provider.of<TaskDao>(context);
-                  taskDao.deleteTask(itemTask);
+                  _delete(context, task);
                   Navigator.of(context).pop(); // Close dialog
+                  updateListView();
                 },
               ),
             ],
@@ -141,14 +140,44 @@ class AllTasksScreenState extends State<AllTasksScreen> {
         });
   }
 
-  //Gives the PopupMenuButton Widget functionality
-  void choiceAction(TaskDao taskDao, choice, Task itemTask) {
-    setState(() {
-      if (choice == EditAndDeletePopupMenuButton.choices[0]) {
-        navigateToAddTaskScreen(itemTask, 'Edit Task');
-      } else if (choice == EditAndDeletePopupMenuButton.choices[1]) {
-        _displayDeleteConfirmationDialog(taskDao, context, itemTask);
-      }
+  void _delete(BuildContext context, Task task) async {
+    int result = await taskDatabaseHelper.deleteTask(task.id);
+    if (result != 0) {
+      _presentSnackBar(context, 'Task Deleted Successfully!');
+      updateListView();
+    }
+  }
+
+  void _presentSnackBar(BuildContext context, String message) {
+    final snackBar = SnackBar(content: Text(message));
+  }
+
+  //When this function is called, it navigates the note screen to the add note screen
+  void navigateToAddTaskScreen(Task task, String title) async {
+    bool result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) {
+          return TaskDetail(task, title);
+        },
+      ),
+    );
+    if (result == true) {
+      updateListView();
+    }
+  }
+
+  void updateListView() {
+    final Future<Database> dbFuture =
+        taskDatabaseHelper.initializeNoteTakerDatabase();
+    dbFuture.then((database) {
+      Future<List<Task>> taskListFuture = taskDatabaseHelper.getTaskList();
+      taskListFuture.then((taskList) {
+        setState(() {
+          this.taskList = taskList;
+          this.count = taskList.length;
+        });
+      });
     });
   }
 
@@ -160,20 +189,18 @@ class AllTasksScreenState extends State<AllTasksScreen> {
     showDialog(context: context, builder: (_) => alertDialog);
   }
 
-  void _presentSnackBar(BuildContext context, String message) {
-    final snackBar = SnackBar(content: Text(message));
-  }
+  //This function is to specifically save the checkbox data!
+  void _save(BuildContext context, Task task) async {
+    int result;
+    //update operation
+    if (task.id != null) {
+      result = await taskDatabaseHelper.updateTask(task);
+    }
 
-  //When this function is called, it navigates the task screen to the add task screen
-  void navigateToAddTaskScreen(Task task, String title) async {
-    bool result = await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) {
-          return TaskDetail(task, title);
-        },
-      ),
-    );
-    if (result == true) {}
+    if (result != 0) {
+      //_showAlertDialog('Task Saved Successfully!');
+    } else {
+      _showAlertDialog('Issue with Saving Task! Please Try again!');
+    }
   }
 }
