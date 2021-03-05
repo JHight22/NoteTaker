@@ -1,40 +1,43 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import 'package:notetaker/Models/task.dart';
-import 'package:intl/intl.dart';
+import 'package:notetaker/Models/noteFolder.dart';
 import 'package:notetaker/Data/DatabaseHelper.dart';
-import 'package:notetaker/UI/task_screen.dart';
+import 'package:intl/intl.dart';
+import 'package:sqflite/sqflite.dart';
+import 'package:notetaker/screens/note_folder_screen.dart';
 
-class TaskDetail extends StatefulWidget {
+class FolderDetail extends StatefulWidget {
   final String appBarTitle;
-  final Task task;
+  final NoteFolder folder;
 
-  TaskDetail(this.task, this.appBarTitle);
+  FolderDetail(this.folder, this.appBarTitle);
 
   @override
   State<StatefulWidget> createState() {
-    return AddTaskScreenState(this.task, this.appBarTitle);
+    return AddFolderScreenState(this.folder, this.appBarTitle);
   }
 }
 
-class AddTaskScreenState extends State<TaskDetail> {
+class AddFolderScreenState extends State<FolderDetail> {
   DatabaseHelper helper = DatabaseHelper();
 
-  var _taskFormKey = GlobalKey<FormState>();
+  var _folderFormKey = GlobalKey<FormState>();
 
   String appBarTitle;
-  Task task;
+  NoteFolder folder;
+  List<NoteFolder> folderList;
+  int count = 0;
 
   TextEditingController titleController = TextEditingController();
   TextEditingController descriptionController = TextEditingController();
 
-  AddTaskScreenState(this.task, this.appBarTitle);
+  AddFolderScreenState(this.folder, this.appBarTitle);
 
   @override
   Widget build(BuildContext context) {
     TextStyle textStyle = Theme.of(context).textTheme.title;
 
-    descriptionController.text = task.description;
+    titleController.text = folder.title;
 
     return Scaffold(
       backgroundColor: Color.fromRGBO(21, 32, 43, 1.0),
@@ -55,11 +58,12 @@ class AddTaskScreenState extends State<TaskDetail> {
             onPressed: () {
               setState(() {
                 debugPrint('Save button clicked');
-                if (_taskFormKey.currentState.validate()) {
+                if (_folderFormKey.currentState.validate()) {
                   _save();
                 } else {
                   moveToPreviousScreen();
-                  _showAlertDialog('Task must have a title. Task discarded');
+                  _showAlertDialog(
+                      'Folder must have a title. Folder discarded');
                 }
               });
             },
@@ -67,7 +71,7 @@ class AddTaskScreenState extends State<TaskDetail> {
           IconButton(
             icon: Icon(Icons.delete_outline),
             color: Colors.orangeAccent[900],
-            tooltip: 'Delete your task!',
+            tooltip: 'Delete your folder!',
             onPressed: () {
               setState(() {
                 _displayDeleteConfirmationDialog(context);
@@ -77,7 +81,7 @@ class AddTaskScreenState extends State<TaskDetail> {
         ],
       ),
       body: Form(
-        key: _taskFormKey,
+        key: _folderFormKey,
         child: Padding(
           padding: EdgeInsets.only(top: 15.0, left: 10.0, right: 10.0),
           child: ListView(
@@ -87,42 +91,41 @@ class AddTaskScreenState extends State<TaskDetail> {
                 child: TextFormField(
                   validator: (String value) {
                     if (value.isEmpty) {
-                      return 'Please enter a description';
+                      return 'Please enter a Title';
                     }
                     return null;
                   },
-                  controller: descriptionController,
+                  controller: titleController,
                   maxLength: 100,
-                  textCapitalization: TextCapitalization.sentences,
-                  maxLines: null,
                   //style: textStyle,
                   style: TextStyle(
                     fontSize: 17.0,
                     color: Colors.white,
                   ),
-                  cursorColor: Colors.orangeAccent[700],
+                  textCapitalization: TextCapitalization.words,
+                  maxLines: 1,
                   autocorrect: true,
                   onChanged: (value) {
-                    debugPrint(
-                        'Something changed in description TextFormField');
-                    updateTaskDescription();
+                    debugPrint('Something change in Title TextField');
+                    updateFolderTitle();
                   },
+                  cursorColor: Colors.orangeAccent[700],
                   decoration: InputDecoration(
                     focusedBorder: OutlineInputBorder(
                       borderSide: BorderSide(
                         color: Color.fromRGBO(21, 32, 43, 1.0),
                       ),
                     ),
+                    alignLabelWithHint: true,
                     fillColor: Color.fromRGBO(21, 32, 43, 1.0),
                     filled: true,
-                    labelText: 'Add to Your Agenda',
-                    //labelStyle: textStyle,
+                    labelText: 'Folder Title',
                     labelStyle: TextStyle(
                       fontSize: 20.0,
                       color: Colors.grey,
                     ),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(5.0),
+                      borderRadius: BorderRadius.circular(1.0),
                     ),
                     enabledBorder: OutlineInputBorder(
                       borderSide: BorderSide(
@@ -143,9 +146,9 @@ class AddTaskScreenState extends State<TaskDetail> {
     Navigator.pop(context, true);
   }
 
-  //Update the description of task object
-  void updateTaskDescription() {
-    task.description = descriptionController.text;
+  //Update the title of Folder object
+  void updateFolderTitle() {
+    folder.title = titleController.text;
   }
 
   //Displays delete confirmation dialog so that the user has a choice to cancel their action or go through with it
@@ -155,8 +158,8 @@ class AddTaskScreenState extends State<TaskDetail> {
       barrierDismissible: true, // Allow dismiss when tapping away from dialog
       builder: (BuildContext context) {
         return AlertDialog(
-          title: Text("Delete Task"),
-          content: Text("Are you sure you want to delete this task?"),
+          title: Text("Delete Folder"),
+          content: Text("Are you sure you want to delete this folder?"),
           actions: <Widget>[
             TextButton(
               child: Text("Cancel"),
@@ -170,7 +173,7 @@ class AddTaskScreenState extends State<TaskDetail> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => TaskScreen(),
+                    builder: (context) => NoteFolderScreen(),
                   ),
                 ); // Close dialog
               },
@@ -184,38 +187,37 @@ class AddTaskScreenState extends State<TaskDetail> {
   //Save data to database
   void _save() async {
     moveToPreviousScreen();
-    task.date = DateFormat.yMMMd().format(DateTime.now());
+    folder.date = DateFormat.yMMMd().format(DateTime.now());
     int result;
     //update operation
-    if (task.id != null) {
-      result = await helper.updateTask(task);
+    if (folder.id != null) {
+      result = await helper.updateNoteFolder(folder);
       //insert operation
     } else {
-      result = await helper.insertTask(task);
+      result = await helper.insertNoteFolder(folder);
     }
 
     if (result != 0) {
-      _showAlertDialog('Task Saved Successfully!');
+      _showAlertDialog('Folder Saved Successfully!');
     } else {
-      _showAlertDialog('Issue with Saving Task! Please Try again!');
+      _showAlertDialog('Issue with Saving Folder! Please Try again!');
     }
   }
 
   //Delete data from database
   void _delete() async {
     moveToPreviousScreen();
-    //User tries to delete a new task which they have arrived at via pressing the FAB
-    if (task.id == null) {
-      _showAlertDialog('Successfully Discarded!');
+    //User tries to delete a new folder which they have arrived at via pressing the FAB
+    if (folder.id == null) {
+      _showAlertDialog('Folder Deleted!');
       return;
     }
-
-    //User tries to delete an old task that already has a valid ID and has been previously saved on the task screen
-    int result = await helper.deleteTask(task.id);
+    //User tries to delete an old folder that already has a valid ID and has been previously saved on the folder screen
+    int result = await helper.deleteNoteFolder(folder.id);
     if (result != 0) {
-      _showAlertDialog('Task Deleted Successfully!');
+      _showAlertDialog('Folder Deleted Successfully!');
     } else {
-      _showAlertDialog("Task Wasn't Successfully Deleted!");
+      _showAlertDialog("Folder Wasn't Successfully Deleted!");
     }
   }
 
@@ -226,12 +228,30 @@ class AddTaskScreenState extends State<TaskDetail> {
       content: Text(message),
     );
     showDialog(
-        context: context,
-        builder: (context) {
-          Future.delayed(Duration(seconds: 1), () {
+      context: context,
+      builder: (context) {
+        Future.delayed(
+          Duration(seconds: 1),
+          () {
             Navigator.of(context).pop(true);
-          });
-          return alertDialog;
+          },
+        );
+        return alertDialog;
+      },
+    );
+  }
+
+  //When this function is called, it updates the list view so the user sees an updated screens
+  void updateListView() {
+    final Future<Database> dbFuture = helper.initializeNoteTakerDatabase();
+    dbFuture.then((database) {
+      Future<List<NoteFolder>> folderListFuture = helper.getNoteFolderList();
+      folderListFuture.then((folderList) {
+        setState(() {
+          this.folderList = folderList;
+          this.count = folderList.length;
         });
+      });
+    });
   }
 }

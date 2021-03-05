@@ -4,7 +4,7 @@ import 'package:notetaker/Models/taskFolder.dart';
 import 'package:notetaker/Data/DatabaseHelper.dart';
 import 'package:intl/intl.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:notetaker/UI/task_folder_screen.dart';
+import 'package:notetaker/screens/task_folder_screen.dart';
 
 class FolderDetail extends StatefulWidget {
   final String appBarTitle;
@@ -241,7 +241,7 @@ class AddFolderScreenState extends State<FolderDetail> {
     );
   }
 
-  //When this function is called, it updates the list view so the user sees an updated UI
+  //When this function is called, it updates the list view so the user sees an updated screens
   void updateListView() {
     final Future<Database> dbFuture = helper.initializeNoteTakerDatabase();
     dbFuture.then((database) {

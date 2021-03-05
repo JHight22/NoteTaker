@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "524979111129",
+    "project_id": "notetaker-15f65",
+    "storage_bucket": "notetaker-15f65.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:524979111129:android:17320bbe3a9abfc881eac8",
+        "android_client_info": {
+          "package_name": "jaredhight.notetaker"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "524979111129-aqd71ks40hjsi78k0epak1hib9srcp1s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBwifMJ6BZh9bQiA5GLctsKM4pJY5vgONQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "524979111129-aqd71ks40hjsi78k0epak1hib9srcp1s.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

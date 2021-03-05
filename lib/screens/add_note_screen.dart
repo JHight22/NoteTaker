@@ -4,7 +4,7 @@ import 'dart:async';
 import 'package:notetaker/Models/note.dart';
 import 'package:notetaker/Data/DatabaseHelper.dart';
 import 'package:intl/intl.dart';
-import 'package:notetaker/UI/all_notes_screen.dart';
+import 'package:notetaker/screens/all_notes_screen.dart';
 import 'package:notetaker/Models/noteFolder.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:notetaker/Data/constants.dart';

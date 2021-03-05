@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:notetaker/UI/all_tasks_screen.dart';
-import 'package:notetaker/UI/all_notes_screen.dart';
-import 'package:notetaker/UI/note_folder_screen.dart';
-import 'package:notetaker/UI/task_folder_screen.dart';
+import 'package:notetaker/screens/all_tasks_screen.dart';
+import 'package:notetaker/screens/all_notes_screen.dart';
+import 'package:notetaker/screens/note_folder_screen.dart';
+import 'package:notetaker/screens/task_folder_screen.dart';
 
 class BottomNavigationBarWidget extends StatefulWidget {
   @override

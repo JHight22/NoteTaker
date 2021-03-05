@@ -1,31 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:notetaker/Widgets/navigation_drawer.dart';
-import 'package:notetaker/UI/add_task_folder_screen.dart';
-import 'package:notetaker/Models/taskFolder.dart';
+import 'package:notetaker/screens/add_note_folder_screen.dart';
+import 'package:notetaker/Models/noteFolder.dart';
 import 'package:notetaker/Data/DatabaseHelper.dart';
 import 'package:sqflite/sqflite.dart';
 import 'dart:async';
 import 'package:notetaker/Data/constants.dart';
-import 'package:notetaker/UI/task_screen.dart';
+import 'package:notetaker/screens/note_screen.dart';
 
-class TaskFolderScreen extends StatefulWidget {
-  static const String id = 'task_folder_screen';
+class NoteFolderScreen extends StatefulWidget {
+  static const String id = 'note_folder_screen';
 
   @override
   State<StatefulWidget> createState() {
-    return TaskFolderScreenState();
+    return NoteFolderScreenState();
   }
 }
 
-class TaskFolderScreenState extends State<TaskFolderScreen> {
+class NoteFolderScreenState extends State<NoteFolderScreen> {
   DatabaseHelper folderDatabaseHelper = DatabaseHelper();
-  List<TaskFolder> folderList;
+  List<NoteFolder> folderList;
   int count = 0;
 
   @override
   Widget build(BuildContext context) {
     if (folderList == null) {
-      folderList = <TaskFolder>[];
+      folderList = <NoteFolder>[];
       updateListView();
     }
 
@@ -36,15 +36,15 @@ class TaskFolderScreenState extends State<TaskFolderScreen> {
         backgroundColor: Colors.orangeAccent[700],
         child: Icon(Icons.create_new_folder),
         onPressed: () {
-          navigateToAddTaskFolderScreen(
-              TaskFolder('', ''), 'Create Task Folder');
+          navigateToAddNoteFolderScreen(
+              NoteFolder('', ''), 'Create Note Folder');
         },
       ),
       appBar: AppBar(
         iconTheme: IconThemeData(color: Colors.orangeAccent[700]),
         backgroundColor: Color.fromRGBO(21, 32, 43, 1.0),
         title: const Text(
-          'Task Folders',
+          'Note Folders',
           style: TextStyle(
             fontSize: 20.0,
           ),
@@ -52,12 +52,12 @@ class TaskFolderScreenState extends State<TaskFolderScreen> {
       ),
       //drawer: NavigationDrawer(),
       body: Builder(
-        builder: (BuildContext innerContext) => getTaskFolderListView(),
+        builder: (BuildContext innerContext) => getNoteFolderListView(),
       ),
     );
   }
 
-  ListView getTaskFolderListView() {
+  ListView getNoteFolderListView() {
     return ListView.builder(
       itemCount: count,
       itemBuilder: (BuildContext context, int position) {
@@ -109,7 +109,7 @@ class TaskFolderScreenState extends State<TaskFolderScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => TaskScreen(),
+                builder: (context) => NoteScreen(),
                 settings: RouteSettings(arguments: folderList[position].id),
               ),
             );
@@ -123,7 +123,7 @@ class TaskFolderScreenState extends State<TaskFolderScreen> {
   void choiceAction(EditAndDeletePopupMenuButton choice, int position) {
     setState(() {
       if (choice == EditAndDeletePopupMenuButton.choices[0]) {
-        navigateToAddTaskFolderScreen(folderList[position], 'Edit Folder');
+        navigateToAddNoteFolderScreen(folderList[position], 'Edit Folder');
         updateListView();
       } else if (choice == EditAndDeletePopupMenuButton.choices[1]) {
         _displayDeleteConfirmationDialog(context, this.folderList[position]);
@@ -134,7 +134,7 @@ class TaskFolderScreenState extends State<TaskFolderScreen> {
 
   //Displays delete confirmation dialog so that the user has a choice to cancel their action or go through with it
   Future<void> _displayDeleteConfirmationDialog(
-      BuildContext context, TaskFolder taskFolder) {
+      BuildContext context, NoteFolder noteFolder) {
     return showDialog<void>(
       context: context,
       barrierDismissible: true, // Allow dismiss when tapping away from dialog
@@ -150,7 +150,7 @@ class TaskFolderScreenState extends State<TaskFolderScreen> {
             TextButton(
               child: Text("Delete"),
               onPressed: () {
-                _delete(context, taskFolder);
+                _delete(context, noteFolder);
                 Navigator.of(context).pop(); // Close dialog
                 updateListView();
               },
@@ -162,8 +162,8 @@ class TaskFolderScreenState extends State<TaskFolderScreen> {
   }
 
   //This function actually deletes folder from database
-  void _delete(BuildContext context, TaskFolder taskFolder) async {
-    int result = await folderDatabaseHelper.deleteTaskFolder(taskFolder.id);
+  void _delete(BuildContext context, NoteFolder noteFolder) async {
+    int result = await folderDatabaseHelper.deleteNoteFolder(noteFolder.id);
     if (result != 0) {
       _presentSnackBar(context, 'Folder Deleted Successfully!');
       updateListView();
@@ -175,13 +175,13 @@ class TaskFolderScreenState extends State<TaskFolderScreen> {
   }
 
   //When this function is called, it navigates the Folder screen to the Add Folder Screen
-  void navigateToAddTaskFolderScreen(
-      TaskFolder taskFolder, String title) async {
+  void navigateToAddNoteFolderScreen(
+      NoteFolder noteFolder, String title) async {
     bool result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) {
-          return FolderDetail(taskFolder, title);
+          return FolderDetail(noteFolder, title);
         },
       ),
     );
@@ -190,14 +190,14 @@ class TaskFolderScreenState extends State<TaskFolderScreen> {
     }
   }
 
-  //When this function is called, it updates the list view so the user sees an updated UI
+  //When this function is called, it updates the list view so the user sees an updated screens
   void updateListView() {
     final Future<Database> dbFuture =
         folderDatabaseHelper.initializeNoteTakerDatabase();
     dbFuture.then((database) {
-      Future<List<TaskFolder>> taskFolderListFuture =
-          folderDatabaseHelper.getTaskFolderList();
-      taskFolderListFuture.then((folderList) {
+      Future<List<NoteFolder>> noteFolderListFuture =
+          folderDatabaseHelper.getNoteFolderList();
+      noteFolderListFuture.then((folderList) {
         setState(() {
           this.folderList = folderList;
           this.count = folderList.length;

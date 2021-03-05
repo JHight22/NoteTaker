@@ -69,7 +69,7 @@ class DropdownButtonState extends State<DropdownButtonFolders> {
     );
   }
 
-  //When this function is called, it updates the list view so the user sees an updated UI
+  //When this function is called, it updates the list view so the user sees an updated screens
   void updateListView() {
     final Future<Database> dbFuture =
         folderDatabaseHelper.initializeNoteTakerDatabase();

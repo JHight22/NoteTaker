@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:notetaker/Widgets/navigation_drawer.dart';
-import 'package:notetaker/UI/add_note_screen.dart';
+import 'package:notetaker/screens/add_note_screen.dart';
 import 'package:notetaker/Models/note.dart';
 import 'package:notetaker/Data/DatabaseHelper.dart';
 import 'package:sqflite/sqflite.dart';
 import 'dart:async';
 
-class NoteScreen extends StatefulWidget {
-  static const String id = 'note_screen';
+class AllNotesScreen extends StatefulWidget {
+  static const String id = 'all_notes_screen';
 
   @override
   State<StatefulWidget> createState() {
-    return NoteScreenState();
+    return AllNotesScreenState();
   }
 }
 
-class NoteScreenState extends State<NoteScreen> {
+class AllNotesScreenState extends State<AllNotesScreen> {
   DatabaseHelper noteDatabaseHelper = DatabaseHelper();
   List<Note> noteList;
   int count = 0;
@@ -39,16 +39,17 @@ class NoteScreenState extends State<NoteScreen> {
         },
       ),
       appBar: AppBar(
+        elevation: 1,
         iconTheme: IconThemeData(color: Colors.orangeAccent[700]),
         backgroundColor: Color.fromRGBO(21, 32, 43, 1.0),
-        title: Text(
-          'Notes',
+        title: const Text(
+          'All Notes',
           style: TextStyle(
             fontSize: 20.0,
           ),
         ),
       ),
-      drawer: NavigationDrawer(),
+      //drawer: NavigationDrawer(),
       body: Builder(
         builder: (BuildContext innerContext) => getNoteListView(),
       ),
@@ -63,6 +64,18 @@ class NoteScreenState extends State<NoteScreen> {
           color: Color.fromRGBO(21, 32, 43, 1.0),
           elevation: 0,
           child: ListTile(
+//            leading: ConstrainedBox(
+//              constraints: BoxConstraints(
+//                maxHeight: 100,
+//                minHeight: 100,
+//                maxWidth: 100,
+//                minWidth: 100,
+//              ),
+//              child: Image.asset(
+//                this.noteList[position].image,
+//                fit: BoxFit.cover,
+//              ),
+//            ),
             title: Text(
               this.noteList[position].title,
             ),
@@ -82,7 +95,7 @@ class NoteScreenState extends State<NoteScreen> {
             ),
             onTap: () {
               debugPrint('ListTile tapped');
-              navigateToAddNoteScreen(this.noteList[position], 'Edit Note');
+              navigateToAddNoteScreen(this.noteList[position], 'Create Note');
             },
           ),
         );
@@ -98,8 +111,9 @@ class NoteScreenState extends State<NoteScreen> {
         barrierDismissible: true, // Allow dismiss when tapping away from dialog
         builder: (BuildContext context) {
           return AlertDialog(
+            backgroundColor: Color.fromRGBO(21, 32, 43, 1.0),
             title: Text("Delete Note"),
-            content: Text("Are you sure you want to delete this Note?"),
+            content: Text("Are you sure you want to delete this note?"),
             actions: <Widget>[
               TextButton(
                 child: Text("Cancel"),
@@ -130,7 +144,7 @@ class NoteScreenState extends State<NoteScreen> {
     final snackBar = SnackBar(content: Text(message));
   }
 
-//When this function is called, it navigates the note screen to the add note screen
+  //When this function is called, it navigates the note screen to the add note screen
   void navigateToAddNoteScreen(Note note, String title) async {
     bool result = await Navigator.push(
       context,

@@ -1,26 +1,33 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:notetaker/UI/all_tasks_screen.dart';
-import 'package:notetaker/UI/note_folder_screen.dart';
-import 'package:notetaker/UI/all_notes_screen.dart';
-import 'package:notetaker/UI/note_screen.dart';
-import 'package:notetaker/UI/task_folder_screen.dart';
-import 'package:notetaker/UI/task_screen.dart';
+import 'package:get/get.dart';
+import 'package:notetaker/screens/all_tasks_screen.dart';
+import 'package:notetaker/screens/note_folder_screen.dart';
+import 'package:notetaker/screens/all_notes_screen.dart';
+import 'package:notetaker/screens/note_screen.dart';
+import 'package:notetaker/screens/task_folder_screen.dart';
+import 'package:notetaker/screens/task_screen.dart';
 import 'package:notetaker/Widgets/BottomNavigationBar.dart';
+import 'package:notetaker/screens/login.dart';
 
-void main() => runApp(MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  runApp(MyApp());
+}
 
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return GetMaterialApp(
       title: 'NoteTaker',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark(
           //       primaryColors: Color.fromRGBO(21, 32, 43, 1.0),
 //        accentColor: Colors.orangeAccent[700],
           ),
-      home: BottomNavigationBarWidget(),
+      home: Login(),
       routes: {
         AllTasksScreen.id: (context) => AllTasksScreen(),
         AllNotesScreen.id: (context) => AllNotesScreen(),

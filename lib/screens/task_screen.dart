@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:notetaker/Widgets/navigation_drawer.dart';
-import 'package:notetaker/UI/add_task_screen.dart';
+import 'package:notetaker/screens/add_task_screen.dart';
 import 'package:notetaker/Models/task.dart';
 import 'package:sqflite/sqflite.dart';
 import 'dart:async';
