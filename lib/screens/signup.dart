@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:notetaker/controllers/authController.dart';
+import 'package:notetaker/screens/login.dart';
 
 class SignUp extends GetWidget<AuthController> {
   final TextEditingController emailController = TextEditingController();
@@ -44,6 +45,7 @@ class SignUp extends GetWidget<AuthController> {
                   return null;
                 },
                 decoration: InputDecoration(hintText: "Password"),
+                obscureText: true,
                 style: TextStyle(
                   fontSize: 17.0,
                   color: Colors.white,
@@ -55,6 +57,7 @@ class SignUp extends GetWidget<AuthController> {
                 onPressed: () {
                   controller.createUser(
                       emailController.text, passwordController.text);
+                  //Get.to(() => Login());
                 },
               ),
             ],

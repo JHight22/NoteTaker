@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:notetaker/Widgets/BottomNavigationBar.dart';
 import 'package:notetaker/controllers/authController.dart';
+import 'package:notetaker/controllers/bindings/authBinding.dart';
 import 'package:notetaker/screens/signup.dart';
 
-class Login extends StatelessWidget {
+class Login extends GetWidget<AuthController> {
   final TextEditingController emailController = TextEditingController();
   final TextEditingController passwordController = TextEditingController();
-
-  AuthController _auth = Get.put(AuthController());
 
   @override
   Widget build(BuildContext context) {
@@ -19,13 +19,8 @@ class Login extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
               TextFormField(
-                validator: (String value) {
-                  if (value.isEmpty) {
-                    return 'Please enter an email';
-                  }
-                  return null;
-                },
                 decoration: InputDecoration(hintText: "Email"),
+                controller: emailController,
                 style: TextStyle(
                   fontSize: 17.0,
                   color: Colors.white,
@@ -36,13 +31,9 @@ class Login extends StatelessWidget {
                 height: 40,
               ),
               TextFormField(
-                validator: (String value) {
-                  if (value.isEmpty) {
-                    return 'Please enter a password';
-                  }
-                  return null;
-                },
                 decoration: InputDecoration(hintText: "Password"),
+                obscureText: true,
+                controller: passwordController,
                 style: TextStyle(
                   fontSize: 17.0,
                   color: Colors.white,
@@ -51,12 +42,16 @@ class Login extends StatelessWidget {
               ),
               TextButton(
                 child: Text("Log in"),
-                onPressed: () {},
+                onPressed: () {
+                  controller.loginUser(
+                      emailController.text, passwordController.text);
+                  //Get.to(() => BottomNavigationBarWidget());
+                },
               ),
               TextButton(
                 child: Text("Sign Up"),
                 onPressed: () {
-                  Get.to(() => SignUp());
+                  Get.to(() => SignUp(), binding: AuthBinding());
                 },
               ),
             ],

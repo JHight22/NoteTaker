@@ -2,6 +2,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:notetaker/controllers/authController.dart';
+import 'package:notetaker/controllers/bindings/authBinding.dart';
 import 'package:notetaker/screens/all_tasks_screen.dart';
 import 'package:notetaker/screens/note_folder_screen.dart';
 import 'package:notetaker/screens/all_notes_screen.dart';
@@ -27,7 +29,10 @@ class MyApp extends StatelessWidget {
           //       primaryColors: Color.fromRGBO(21, 32, 43, 1.0),
 //        accentColor: Colors.orangeAccent[700],
           ),
-      home: Login(),
+      initialBinding: AuthBinding(),
+      home: (Get.put(AuthController()).user != null)
+          ? BottomNavigationBarWidget()
+          : Login(),
       routes: {
         AllTasksScreen.id: (context) => AllTasksScreen(),
         AllNotesScreen.id: (context) => AllNotesScreen(),
