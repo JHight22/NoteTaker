@@ -3,12 +3,12 @@ import 'package:get/get.dart';
 import 'package:notetaker/models/task.dart';
 import 'package:notetaker/models/user.dart';
 
-class FirebaseDatabase {
+class FirebaseDatabase extends GetxService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   Future<bool> createNewUser(UserModel user) async {
     try {
-      await _firestore.collection("users").doc(user.id).set({
+      await _firestore.collection("users").doc(user.userId).set({
         "name": user.name,
         "email": user.email,
       });
@@ -16,17 +16,6 @@ class FirebaseDatabase {
     } catch (e) {
       print(e);
       return false;
-    }
-  }
-
-  Future<UserModel> getUser(String uid) async {
-    try {
-      DocumentSnapshot _doc =
-          await _firestore.collection("users").doc(uid).get();
-      return UserModel.fromDocumentSnapShot(documentSnapshot: _doc);
-    } catch (e) {
-      print(e);
-      rethrow;
     }
   }
 
@@ -57,30 +46,40 @@ class FirebaseDatabase {
     }
   }
 
-  Stream<List<TaskModel>> taskStream(String uid) {
+  Future<UserModel> getUser(String uid) async {
     try {
-      return _firestore
-          .collection("users")
-          .doc("uid")
-          .collection("tasks")
-          .orderBy("date", descending: true)
-          .snapshots()
-          .map((QuerySnapshot query) {
-        final List<TaskModel> retVal = <TaskModel>[];
-        for (final DocumentSnapshot doc in query.docs) {
-          retVal.add(TaskModel.fromDocumentSnapshot(documentSnapshot: doc));
-        }
-        print(uid);
-        print(retVal);
-        return retVal;
-      });
+      DocumentSnapshot _doc =
+          await _firestore.collection("users").doc(uid).get();
+      return UserModel.fromDocumentSnapShot(documentSnapshot: _doc);
     } catch (e) {
-      Get.snackbar(
-        "Error loading tasks",
-        e.message,
-        snackPosition: SnackPosition.BOTTOM,
-      );
+      print(e);
       rethrow;
     }
+  }
+
+  Stream<List<TaskModel>> taskStream(String uid) {
+    return _firestore
+        .collection("users")
+        .doc("uid")
+        .collection("tasks")
+        .orderBy("date", descending: true)
+        .snapshots()
+        .map((query) {
+      List<TaskModel> tasks = <TaskModel>[];
+      for (final DocumentSnapshot doc in query.docs) {
+        tasks.add(TaskModel.fromDocumentSnapshot(documentSnapshot: doc));
+      }
+
+      print(_firestore);
+      if (tasks.isNotEmpty) {
+        print("tasks not empty");
+      }
+
+      if (tasks.isEmpty) {
+        print("tasks empty");
+      }
+
+      return tasks;
+    });
   }
 }

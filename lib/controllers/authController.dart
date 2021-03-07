@@ -13,6 +13,8 @@ class AuthController extends GetxController {
   @override
   void onInit() {
     _firebaseUser.bindStream(_auth.authStateChanges());
+
+    super.onInit();
   }
 
   void createUser(String name, String email, String password) async {
@@ -22,7 +24,7 @@ class AuthController extends GetxController {
 
       //This creates a user in the database
       UserModel _user = UserModel(
-        id: _authResult.user.uid,
+        userId: _authResult.user.uid,
         name: name,
         email: _authResult.user.email,
       );

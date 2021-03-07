@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'package:notetaker/controllers/authController.dart';
 import 'package:notetaker/controllers/bottomNavigationController.dart';
 import 'package:notetaker/screens/allNotesScreen.dart';
 import 'package:notetaker/screens/allTasksScreen.dart';
 import 'package:notetaker/screens/noteFolderScreen.dart';
 import 'package:notetaker/screens/taskFolderScreen.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends GetWidget<AuthController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(

@@ -4,6 +4,7 @@ import 'package:notetaker/Widgets/navigation_drawer.dart';
 import 'package:notetaker/Widgets/taskCard.dart';
 import 'package:notetaker/controllers/authController.dart';
 import 'package:notetaker/controllers/taskController.dart';
+import 'package:notetaker/services/firebaseDatabase.dart';
 import 'addTaskScreen.dart';
 
 class AllTasksScreen extends GetWidget<AuthController> {
@@ -24,7 +25,7 @@ class AllTasksScreen extends GetWidget<AuthController> {
       body: Column(
         children: <Widget>[
           SizedBox(
-            height: 5,
+            height: 20,
           ),
           GetX<TaskController>(
             init: Get.put<TaskController>(TaskController()),

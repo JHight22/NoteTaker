@@ -4,13 +4,19 @@ import 'package:notetaker/models/task.dart';
 import 'package:notetaker/services/firebaseDatabase.dart';
 
 class TaskController extends GetxController {
-  Rx<List<TaskModel>> taskList = Rx<List<TaskModel>>();
+  var _taskList = Rx<List<TaskModel>>();
 
-  List<TaskModel> get tasks => taskList.value;
+  List<TaskModel> get tasks => _taskList.value;
 
   @override
   void onInit() {
     String uid = Get.find<AuthController>().user.uid;
-    taskList.bindStream(FirebaseDatabase().taskStream(uid));
+
+    _taskList = Rx<List<TaskModel>>();
+
+    //this is the stream that is being downloaded from firebase
+    _taskList.bindStream(FirebaseDatabase().taskStream(uid));
+
+    super.onInit();
   }
 }
