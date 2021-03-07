@@ -1,60 +1,71 @@
 import 'package:flutter/material.dart';
-import 'package:notetaker/screens/all_tasks_screen.dart';
-import 'package:notetaker/screens/all_notes_screen.dart';
-import 'package:notetaker/screens/note_folder_screen.dart';
-import 'package:notetaker/screens/task_folder_screen.dart';
+import 'package:get/get.dart';
+import 'package:notetaker/controllers/bottomNavigationController.dart';
+import 'package:notetaker/screens/allNotesScreen.dart';
+import 'package:notetaker/screens/allTasksScreen.dart';
+import 'package:notetaker/screens/noteFolderScreen.dart';
+import 'package:notetaker/screens/taskFolderScreen.dart';
 
-class BottomNavigationBarWidget extends StatefulWidget {
-  @override
-  State<StatefulWidget> createState() {
-    return _BottomNavigationBarWidget();
-  }
-}
-
-class _BottomNavigationBarWidget extends State<BottomNavigationBarWidget> {
-  int _currentIndex = 0;
-  final List<Widget> _children = [
-    AllNotesScreen(),
-    AllTasksScreen(),
-    NoteFolderScreen(),
-    TaskFolderScreen(),
-  ];
-
+class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: _children[_currentIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        backgroundColor: Color.fromRGBO(21, 32, 43, 1.0),
-        onTap: onTabTapped,
-        currentIndex: _currentIndex,
+      body: GetBuilder<BottomNavigationController>(
+        init: BottomNavigationController(),
+        builder: (s) => IndexedStack(
+          index: s.selectedIndex,
+          children: <Widget>[
+            AllNotesScreen(),
+            AllTasksScreen(),
+            NoteFolderScreen(),
+            TaskFolderScreen(),
+          ],
+        ),
+      ),
+      bottomNavigationBar: CoolBottomNavigationBar(),
+    );
+  }
+}
+
+class CoolBottomNavigationBar extends StatelessWidget {
+  const CoolBottomNavigationBar({
+    Key key,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return GetBuilder<BottomNavigationController>(
+      builder: (s) => BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
+            backgroundColor: Colors.black,
             icon: Icon(Icons.note),
             label: 'All Notes',
           ),
           BottomNavigationBarItem(
+            backgroundColor: Colors.black,
             icon: Icon(Icons.content_paste),
             label: 'All Tasks',
           ),
           BottomNavigationBarItem(
+            backgroundColor: Colors.black,
             icon: Icon(Icons.folder),
             label: 'Note Folders',
           ),
           BottomNavigationBarItem(
+            backgroundColor: Colors.black,
             icon: Icon(Icons.folder_open),
             label: 'Task Folders',
           ),
         ],
-        selectedItemColor: Colors.orangeAccent[700],
+        currentIndex: s.selectedIndex,
         unselectedItemColor: Colors.orangeAccent[700],
+        selectedItemColor: Colors.orangeAccent[700],
+        onTap: (index) => s.onItemTapped(index),
+        showSelectedLabels: true,
+        showUnselectedLabels: false,
+        elevation: 10,
       ),
     );
-  }
-
-  void onTabTapped(int index) {
-    setState(() {
-      _currentIndex = index;
-    });
   }
 }

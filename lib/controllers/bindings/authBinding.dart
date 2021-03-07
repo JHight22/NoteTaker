@@ -4,6 +4,6 @@ import 'package:notetaker/controllers/authController.dart';
 class AuthBinding extends Bindings {
   @override
   void dependencies() {
-    Get.lazyPut<AuthController>(() => AuthController());
+    Get.put<AuthController>(AuthController(), permanent: true);
   }
 }

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:notetaker/screens/all_tasks_screen.dart';
-import 'package:notetaker/screens/all_notes_screen.dart';
-import 'package:notetaker/screens/note_folder_screen.dart';
-import 'package:notetaker/screens/task_folder_screen.dart';
+import 'package:get/get.dart';
+import 'package:notetaker/controllers/authController.dart';
+import 'package:notetaker/controllers/userController.dart';
+import 'package:notetaker/services/firebaseDatabase.dart';
 
-class NavigationDrawer extends StatelessWidget {
+class NavigationDrawer extends GetWidget<AuthController> {
   @override
   Widget build(BuildContext context) {
     return Drawer(
@@ -24,68 +24,29 @@ class NavigationDrawer extends StatelessWidget {
             ),
           ),
           ListTile(
-            leading: Icon(
-              Icons.note,
-              color: Colors.orangeAccent[700],
+            title: GetX<UserController>(
+              initState: (_) async {
+                Get.find<UserController>().user = await FirebaseDatabase()
+                    .getUser(Get.find<AuthController>().user.uid);
+              },
+              builder: (_) {
+                if (_.user.name != null) {
+                  return Text("Welcome " + _.user.name);
+                } else {
+                  return Text("loading");
+                }
+              },
             ),
-            title: Text('All Notes'),
+          ),
+          ListTile(
+            title: Text('Sign Out'),
             trailing: Icon(
-              Icons.arrow_right,
+              Icons.exit_to_app_sharp,
             ),
             onTap: () {
-              Navigator.of(context).pop();
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => AllNotesScreen()));
+              controller.signOutUser();
             },
           ),
-          Divider(),
-          ListTile(
-            leading: Icon(
-              Icons.content_paste,
-              color: Colors.orangeAccent[700],
-            ),
-            title: Text('All Tasks'),
-            trailing: Icon(
-              Icons.arrow_right,
-            ),
-            onTap: () {
-              Navigator.of(context).pop();
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => AllTasksScreen()));
-            },
-          ),
-          Divider(),
-          ListTile(
-            leading: Icon(
-              Icons.folder,
-              color: Colors.orangeAccent[700],
-            ),
-            title: Text('Note Folders'),
-            trailing: Icon(
-              Icons.arrow_right,
-            ),
-            onTap: () {
-              Navigator.of(context).pop();
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => NoteFolderScreen()));
-            },
-          ),
-          Divider(),
-          ListTile(
-            leading: Icon(
-              Icons.folder,
-              color: Colors.orangeAccent[700],
-            ),
-            title: Text('Task Folders'),
-            trailing: Icon(
-              Icons.arrow_right,
-            ),
-            onTap: () {
-              Navigator.of(context).pop();
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (context) => TaskFolderScreen()));
-            },
-          )
         ],
       ),
     );

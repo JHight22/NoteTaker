@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:notetaker/Widgets/BottomNavigationBar.dart';
 import 'package:notetaker/controllers/authController.dart';
-import 'package:notetaker/controllers/bindings/authBinding.dart';
 import 'package:notetaker/screens/signup.dart';
 
 class Login extends GetWidget<AuthController> {
@@ -12,6 +11,10 @@ class Login extends GetWidget<AuthController> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: Text("Log in"),
+        centerTitle: true,
+      ),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(20.0),
@@ -51,7 +54,7 @@ class Login extends GetWidget<AuthController> {
               TextButton(
                 child: Text("Sign Up"),
                 onPressed: () {
-                  Get.to(() => SignUp(), binding: AuthBinding());
+                  Get.to(() => SignUp());
                 },
               ),
             ],

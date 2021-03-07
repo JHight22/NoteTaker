@@ -13,7 +13,6 @@ dependencies:
   intl: ^0.17.0
   path_provider: ^2.0.1
   image_picker: ^0.7.2
-  sqflite: ^2.0.0+1
   get: ^3.26.0
   firebase_auth: ^1.0.0
   cloud_firestore: ^1.0.0
