@@ -25,7 +25,7 @@ class AllTasksScreen extends GetWidget<AuthController> {
       body: Column(
         children: <Widget>[
           SizedBox(
-            height: 20,
+            height: 5,
           ),
           GetX<TaskController>(
             init: Get.put<TaskController>(TaskController()),

@@ -24,21 +24,6 @@ class NavigationDrawer extends GetWidget<AuthController> {
             ),
           ),
           ListTile(
-            title: GetX<UserController>(
-              initState: (_) async {
-                Get.find<UserController>().user = await FirebaseDatabase()
-                    .getUser(Get.find<AuthController>().user.uid);
-              },
-              builder: (_) {
-                if (_.user.name != null) {
-                  return Text("Welcome " + _.user.name);
-                } else {
-                  return Text("loading");
-                }
-              },
-            ),
-          ),
-          ListTile(
             title: Text('Sign Out'),
             trailing: Icon(
               Icons.exit_to_app_sharp,

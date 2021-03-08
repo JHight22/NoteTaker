@@ -26,9 +26,26 @@ class FirebaseDatabase extends GetxService {
         'title': title,
         'complete': false,
       });
+      Get.snackbar("Success!", "Task Created!",
+          snackPosition: SnackPosition.TOP);
     } catch (e) {
       print(e);
+
       rethrow;
+    }
+  }
+
+  Future<void> deleteTask(String uid, String taskId) async {
+    try {
+      await _firestore
+          .collection("users")
+          .doc(uid)
+          .collection("tasks")
+          .doc(taskId)
+          .delete();
+    } catch (e) {
+      Get.snackbar("Can't delete task!", e.message,
+          snackPosition: SnackPosition.TOP);
     }
   }
 
@@ -60,26 +77,16 @@ class FirebaseDatabase extends GetxService {
   Stream<List<TaskModel>> taskStream(String uid) {
     return _firestore
         .collection("users")
-        .doc("uid")
+        .doc(uid)
         .collection("tasks")
         .orderBy("date", descending: true)
         .snapshots()
         .map((query) {
-      List<TaskModel> tasks = <TaskModel>[];
-      for (final DocumentSnapshot doc in query.docs) {
-        tasks.add(TaskModel.fromDocumentSnapshot(documentSnapshot: doc));
-      }
-
-      print(_firestore);
-      if (tasks.isNotEmpty) {
-        print("tasks not empty");
-      }
-
-      if (tasks.isEmpty) {
-        print("tasks empty");
-      }
-
-      return tasks;
+      List<TaskModel> retVal = [];
+      query.docs.forEach((element) {
+        retVal.add(TaskModel.fromDocumentSnapshot(element));
+      });
+      return retVal;
     });
   }
 }

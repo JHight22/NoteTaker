@@ -13,7 +13,7 @@ class TaskModel {
     this.complete,
   });
 
-  TaskModel.fromDocumentSnapshot({DocumentSnapshot documentSnapshot}) {
+  TaskModel.fromDocumentSnapshot(DocumentSnapshot documentSnapshot) {
     taskId = documentSnapshot.id;
     title = documentSnapshot.data()['title'];
     date = documentSnapshot.data()['date'];
