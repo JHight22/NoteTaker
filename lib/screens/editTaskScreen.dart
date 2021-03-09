@@ -2,16 +2,21 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:notetaker/controllers/authController.dart';
+import 'package:notetaker/controllers/taskController.dart';
+import 'package:notetaker/models/task.dart';
 import 'package:notetaker/services/firebaseDatabase.dart';
 
-class AddTaskScreen extends GetWidget<AuthController> {
+class EditTaskScreen extends GetWidget<AuthController> {
+  EditTaskScreen({Key key, this.task}) : super(key: key);
+
   final TextEditingController _taskController = TextEditingController();
+  final TaskModel task;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("Create Task"),
+        title: Text("Edit Task"),
       ),
       body: Container(
         padding: EdgeInsets.all(12.0),
@@ -22,7 +27,7 @@ class AddTaskScreen extends GetWidget<AuthController> {
                 controller: _taskController,
                 autofocus: true,
                 decoration: InputDecoration(
-                    hintText: 'What do you want to accomplish?',
+                    hintText: "What do you want to accomplish?",
                     border: InputBorder.none,
                     focusedBorder: InputBorder.none),
                 style: TextStyle(
@@ -40,7 +45,7 @@ class AddTaskScreen extends GetWidget<AuthController> {
                     primary: Colors.orangeAccent[700],
                     onPrimary: Colors.black,
                   ),
-                  child: Text('Cancel'),
+                  child: Text("Cancel"),
                   onPressed: () {
                     Get.back();
                   },
@@ -50,11 +55,11 @@ class AddTaskScreen extends GetWidget<AuthController> {
                     primary: Colors.orangeAccent[700],
                     onPrimary: Colors.black,
                   ),
-                  child: Text("Create"),
+                  child: Text("Edit"),
                   onPressed: () {
                     if (_taskController.text != "") {
-                      FirebaseDatabase().createTask(
-                          _taskController.text, controller.user.uid);
+                      FirebaseDatabase().updateTask(_taskController.text,
+                          controller.user.uid, task.taskId);
                       _taskController.clear();
                       Get.back();
                     }

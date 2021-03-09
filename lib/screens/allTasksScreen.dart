@@ -12,14 +12,15 @@ class AllTasksScreen extends GetWidget<AuthController> {
   Widget build(BuildContext context) {
     return Scaffold(
       floatingActionButton: FloatingActionButton(
-        child: Icon(Icons.note),
+        heroTag: null,
+        child: Icon(Icons.content_paste),
         backgroundColor: Colors.orangeAccent[700],
         onPressed: () {
           Get.to(() => AddTaskScreen());
         },
       ),
       appBar: AppBar(
-        title: Text("Task Screen"),
+        title: Text("All Tasks"),
       ),
       drawer: NavigationDrawer(),
       body: Column(

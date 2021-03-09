@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:get/get.dart';
 import 'package:notetaker/models/task.dart';
 import 'package:notetaker/models/user.dart';
+import 'package:notetaker/screens/editTaskScreen.dart';
 
 class FirebaseDatabase extends GetxService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -29,8 +31,8 @@ class FirebaseDatabase extends GetxService {
       Get.snackbar("Success!", "Task Created!",
           snackPosition: SnackPosition.TOP);
     } catch (e) {
-      print(e);
-
+      Get.snackbar("Can't create task!", e.message,
+          snackPosition: SnackPosition.TOP);
       rethrow;
     }
   }
@@ -43,13 +45,16 @@ class FirebaseDatabase extends GetxService {
           .collection("tasks")
           .doc(taskId)
           .delete();
+      Get.snackbar("Success!", "Task Deleted!",
+          snackPosition: SnackPosition.TOP);
     } catch (e) {
       Get.snackbar("Can't delete task!", e.message,
           snackPosition: SnackPosition.TOP);
     }
   }
 
-  Future<void> updateTask(bool newValue, String uid, String taskId) async {
+  Future<void> updateTaskCheckbox(
+      bool newValue, String uid, String taskId) async {
     try {
       await _firestore
           .collection("users")
@@ -63,11 +68,45 @@ class FirebaseDatabase extends GetxService {
     }
   }
 
+  Future<void> updateTask(
+      String textController, String uid, String taskId) async {
+    try {
+      await _firestore
+          .collection("users")
+          .doc(uid)
+          .collection("tasks")
+          .doc(taskId)
+          .update({"title": textController});
+      Get.snackbar("Success!", "Task Updated!",
+          snackPosition: SnackPosition.TOP);
+    } catch (e) {
+      Get.snackbar("Can't update task!", e.message,
+          snackPosition: SnackPosition.TOP);
+      rethrow;
+    }
+  }
+
   Future<UserModel> getUser(String uid) async {
     try {
       DocumentSnapshot _doc =
           await _firestore.collection("users").doc(uid).get();
       return UserModel.fromDocumentSnapShot(documentSnapshot: _doc);
+    } catch (e) {
+      print(e);
+      rethrow;
+    }
+  }
+
+  Future<TaskModel> getTask(String uid, String taskId) async {
+    try {
+      DocumentSnapshot _doc = await _firestore
+          .collection("users")
+          .doc(uid)
+          .collection("tasks")
+          .doc(taskId)
+          .get();
+      Get.to(() => EditTaskScreen());
+      return TaskModel.fromDocumentSnapshot(_doc);
     } catch (e) {
       print(e);
       rethrow;
